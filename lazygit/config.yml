@@ -1,0 +1,34 @@
+# lazygit custom commands for lazygit-ai
+#
+# HOW TO USE:
+#   Merge this customCommands block into your existing lazygit config.yml.
+#   If you have no customCommands section yet, you can append this file as-is.
+#
+# Config file locations:
+#   Linux:   ~/.config/lazygit/config.yml
+#   macOS:   ~/Library/Application Support/lazygit/config.yml
+#   Other:   run `lazygit --print-config-dir` to find yours
+#
+# PREREQUISITE: `lazygit-ai` must be on your PATH.
+#   After `make install` or `go install`, ensure $(go env GOPATH)/bin is in PATH.
+#
+# KEYBINDINGS:
+#   Ctrl+A  — In the Files panel: generate a commit message with AI and open it
+#             in your editor for review before committing.
+#   Ctrl+P  — In the Local Branches panel: generate a PR title+body and open a
+#             GitHub PR (requires `gh` CLI authenticated).
+#
+#   These keybindings can be changed to any key lazygit supports by editing
+#   the `key:` fields below.
+
+customCommands:
+  - key: '<c-a>'
+    context: 'files'
+    description: 'AI: generate commit message'
+    command: 'lazygit-ai commit | git commit -F - --edit'
+    subprocess: true
+  - key: '<c-p>'
+    context: 'localBranches'
+    description: 'AI: create PR description'
+    command: 'lazygit-ai pr --create'
+    subprocess: true
