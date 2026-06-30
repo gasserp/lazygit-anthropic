@@ -1,0 +1,143 @@
+# lazygit-ai
+
+A Go CLI that generates Conventional-Commits-style commit messages and GitHub PR descriptions via the Anthropic API, wired into [lazygit](https://github.com/jesseduffield/lazygit) through its Custom Commands feature.
+
+## Why custom commands?
+
+lazygit has no plugin system. Custom commands — defined in lazygit's config file — are the upstream-safe, maintainable integration point. This approach requires no fork, no patching, and no changes to lazygit itself. lazygit upgrades won't break it; the only coupling is lazygit's stable `customCommands` config schema.
+
+## Requirements
+
+- **Go** (to build from source)
+- **git**
+- **lazygit**
+- **gh** (GitHub CLI) — optional, only needed for `lazygit-ai pr --create`
+- An **Anthropic API key** — get one at <https://console.anthropic.com/>
+
+## Install
+
+```sh
+# From source
+make install
+
+# Or directly with Go
+go install github.com/gasserp/lazygit-anthropic@latest
+```
+
+Then ensure Go's bin directory is on your PATH:
+
+```sh
+export PATH="$PATH:$(go env GOPATH)/bin"
+```
+
+Add that line to your shell's rc file (`~/.bashrc`, `~/.zshrc`, etc.) to make it permanent.
+
+## Configure
+
+### API key
+
+**Option 1 — environment variable (recommended):**
+
+```sh
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+**Option 2 — config file:**
+
+Create `~/.config/lazygit-ai/config.yml`:
+
+```yaml
+api_key: sk-ant-...
+model: claude-opus-4-8
+```
+
+The environment variable takes precedence over the config file when both are set.
+
+### Model selection
+
+The default model is `claude-opus-4-8`. You can override it at three levels (highest priority first):
+
+| Method | Example |
+|---|---|
+| `--model` flag | `lazygit-ai commit --model claude-haiku-4-5` |
+| `LAZYGIT_AI_MODEL` env var | `export LAZYGIT_AI_MODEL=claude-sonnet-4-6` |
+| `model:` in config file | `model: claude-sonnet-4-6` |
+
+For lighter workloads or lower cost, consider:
+
+- `claude-sonnet-4-6` — faster and cheaper, still high quality
+- `claude-haiku-4-5` — fastest and cheapest option
+
+## lazygit integration
+
+Merge the `customCommands` block from `lazygit/config.yml` in this repo into your lazygit config file.
+
+**Find your lazygit config:**
+
+```sh
+lazygit --print-config-dir
+# Linux default:  ~/.config/lazygit/config.yml
+# macOS default:  ~/Library/Application Support/lazygit/config.yml
+```
+
+**Add the custom commands:**
+
+```yaml
+customCommands:
+  - key: '<c-a>'
+    context: 'files'
+    description: 'AI: generate commit message'
+    command: 'lazygit-ai commit | git commit -F - --edit'
+    subprocess: true
+  - key: '<c-p>'
+    context: 'localBranches'
+    description: 'AI: create PR description'
+    command: 'lazygit-ai pr --create'
+    subprocess: true
+```
+
+**Keybindings:**
+
+| Key | Panel | Action |
+|---|---|---|
+| `Ctrl+A` | Files | Generate a commit message for staged changes, open it in `$EDITOR` for review, then commit |
+| `Ctrl+P` | Local Branches | Generate a PR title + body and open a PR via `gh pr create` |
+
+These keybindings can be changed by editing the `key:` fields in your lazygit config.
+
+## Usage
+
+```sh
+# Generate a commit message for staged changes (prints to stdout)
+lazygit-ai commit
+
+# Generate a PR description (prints title and body to stdout)
+lazygit-ai pr
+
+# Generate a PR description against a specific base branch
+lazygit-ai pr --base main
+
+# Generate and immediately open a GitHub PR
+lazygit-ai pr --create
+
+# Use a specific model for one command
+lazygit-ai commit --model claude-sonnet-4-6
+lazygit-ai pr --create --model claude-haiku-4-5
+
+# Help
+lazygit-ai --help
+lazygit-ai commit --help
+lazygit-ai pr --help
+```
+
+`lazygit-ai commit` reads `git diff --cached` and exits with status 1 if nothing is staged.
+
+`lazygit-ai pr` auto-detects the base branch from the origin remote's default branch, falling back to `main` or `master`. Without `--create` it prints `title\n\nbody`; with `--create` it runs `gh pr create`.
+
+## Security
+
+The repository is hardened against supply-chain and takeover risks: GitHub Actions are pinned to immutable commit SHAs, workflows run with a read-only `GITHUB_TOKEN`, CodeQL, Trivy, and govulncheck run on a schedule, and Renovate keeps dependencies (and the pinned Action SHAs) up to date. Branch protection is shipped as a ruleset and applied with `scripts/apply-security.sh`. See [`docs/security-hardening.md`](docs/security-hardening.md) for the full rationale and checklist, and [`SECURITY.md`](SECURITY.md) for how to report a vulnerability.
+
+## Maintainability
+
+The lazygit integration is config-only. lazygit upgrades will not break anything as long as lazygit continues to support the `customCommands` schema, which is a stable, documented feature. No forking, no patching, no monkey-patching — just two lines in a YAML file.
