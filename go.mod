@@ -1,6 +1,6 @@
 module github.com/gasserp/lazygit-anthropic
 
-go 1.24.7
+go 1.25.11
 
 require (
 	github.com/anthropics/anthropic-sdk-go v1.53.0
