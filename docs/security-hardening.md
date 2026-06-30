@@ -40,8 +40,9 @@ It enables:
   land — the direct mitigation for leaked-token takeovers).
 - **`GITHUB_TOKEN` default = read-only** at the repo level, and Actions cannot
   approve pull requests.
-- **Actions allowlist**: GitHub-owned actions plus an explicit
-  `aquasecurity/trivy-action@*` entry — nothing else can run.
+- **Actions allowlist**: GitHub-owned actions plus explicit
+  `aquasecurity/trivy-action@*` and `aquasecurity/setup-trivy@*` entries
+  (trivy-action calls setup-trivy internally) — nothing else can run.
 - The **branch ruleset** below.
 
 > Secret scanning and code scanning are free on public repos; on private repos
