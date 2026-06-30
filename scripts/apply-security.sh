@@ -28,10 +28,11 @@ soft() { "$@" || echo "   (warning: step failed — see message above; continuin
 echo ">> Enabling Dependabot vulnerability alerts"
 soft api --method PUT "repos/${REPO}/vulnerability-alerts" --silent
 
-echo ">> Enabling Dependabot automated security fixes"
-soft api --method PUT "repos/${REPO}/automated-security-fixes" --silent
+# Note: Dependabot vulnerability *alerts* stay on (detection feed). We do NOT
+# enable Dependabot security *updates* — Renovate (renovate.json) raises the fix
+# PRs, so enabling both would produce duplicate update PRs.
 
-echo ">> Enabling secret scanning, push protection, and Dependabot security updates"
+echo ">> Enabling secret scanning and push protection"
 echo "   (secret scanning on a PRIVATE repo requires GitHub Advanced Security)"
 soft api --method PATCH "repos/${REPO}" --input - <<'JSON'
 {
@@ -39,8 +40,7 @@ soft api --method PATCH "repos/${REPO}" --input - <<'JSON'
     "secret_scanning": { "status": "enabled" },
     "secret_scanning_push_protection": { "status": "enabled" },
     "secret_scanning_non_provider_patterns": { "status": "enabled" },
-    "secret_scanning_validity_checks": { "status": "enabled" },
-    "dependabot_security_updates": { "status": "enabled" }
+    "secret_scanning_validity_checks": { "status": "enabled" }
   }
 }
 JSON
@@ -72,6 +72,8 @@ cat <<'NOTE'
 >> Done with the scriptable settings.
 
 Manual steps that have no stable API (do these in the GitHub UI):
+  - Onboard Renovate: install https://github.com/apps/renovate on the repo
+    (free for public repos), or self-host. Config lives in renovate.json.
   - Settings > Code security: turn on "Private vulnerability reporting".
   - Settings > Actions > General > Fork pull request workflows:
       "Require approval for all external contributors".

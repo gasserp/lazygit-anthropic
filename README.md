@@ -136,7 +136,7 @@ lazygit-ai pr --help
 
 ## Security
 
-The repository is hardened against supply-chain and takeover risks: GitHub Actions are pinned to immutable commit SHAs, workflows run with a read-only `GITHUB_TOKEN`, and CodeQL, Trivy, govulncheck, and Dependabot run on a schedule. Branch protection is shipped as a ruleset and applied with `scripts/apply-security.sh`. See [`docs/security-hardening.md`](docs/security-hardening.md) for the full rationale and checklist, and [`SECURITY.md`](SECURITY.md) for how to report a vulnerability.
+The repository is hardened against supply-chain and takeover risks: GitHub Actions are pinned to immutable commit SHAs, workflows run with a read-only `GITHUB_TOKEN`, CodeQL, Trivy, and govulncheck run on a schedule, and Renovate keeps dependencies (and the pinned Action SHAs) up to date. Branch protection is shipped as a ruleset and applied with `scripts/apply-security.sh`. See [`docs/security-hardening.md`](docs/security-hardening.md) for the full rationale and checklist, and [`SECURITY.md`](SECURITY.md) for how to report a vulnerability.
 
 ## Maintainability
 

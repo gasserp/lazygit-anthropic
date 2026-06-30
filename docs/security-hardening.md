@@ -16,7 +16,7 @@ toggles are applied with a script or in the UI.
 | CI gate (build, vet, gofmt, tests, govulncheck) | `.github/workflows/ci.yml` | Provides the `build` status check the ruleset requires, and scans Go deps for known vulnerabilities. |
 | CodeQL code scanning | `.github/workflows/codeql.yml` | Static analysis for Go on push, PR, and weekly. |
 | Trivy scan (vuln + secret + misconfig) → SARIF | `.github/workflows/trivy.yml` | Filesystem scan, results surfaced in the Security tab. |
-| Dependabot (gomod + github-actions) | `.github/dependabot.yml` | Weekly updates; also keeps the pinned Action SHAs current. |
+| Renovate (gomod + github-actions) | `renovate.json` | Weekly update PRs; keeps the pinned Action SHAs current via `helpers:pinGitHubActionDigests`. |
 | Security policy | `SECURITY.md` | Private reporting instructions. |
 | Code owners | `.github/CODEOWNERS` | Enables code-owner review enforcement when turned on. |
 | Branch ruleset (as data) | `.github/rulesets/main-branch-protection.json` | Applied via the script below. |
@@ -32,7 +32,9 @@ scripts/apply-security.sh            # defaults to gasserp/lazygit-anthropic
 
 It enables:
 
-- **Dependabot alerts** and **automated security fixes**.
+- **Dependabot vulnerability alerts** (detection feed). Dependabot's own
+  security *update PRs* are intentionally left off — Renovate raises fix PRs
+  (`vulnerabilityAlerts` + OSV), so enabling both would duplicate PRs.
 - **Secret scanning**, **push protection**, non-provider patterns, and validity
   checks (push protection blocks commits that contain credentials *before* they
   land — the direct mitigation for leaked-token takeovers).
@@ -84,7 +86,16 @@ No bypass actors are configured, so the rules apply to admins too.
   uploads land (auto on public repos with the committed workflows).
 - **Organization**: require **two-factor authentication** for all members.
 
+## Dependency updates (Renovate)
+
+Dependency updates are handled by **Renovate** (`renovate.json`), not Dependabot.
+To activate it, install the **Renovate GitHub App**
+(<https://github.com/apps/renovate>, free for public repos) on the repository,
+or run Renovate self-hosted. The config extends `config:recommended`, runs
+weekly, groups Go and Actions updates, runs `go mod tidy` after Go bumps, and
+raises security PRs from GitHub and OSV advisories.
+
 ## Updating pinned Action SHAs
 
-Don't hand-edit SHAs. Dependabot (`github-actions` ecosystem) opens PRs that bump
-both the SHA and the `# vX.Y.Z` comment. Review and merge those PRs.
+Don't hand-edit SHAs. Renovate (`helpers:pinGitHubActionDigests`) opens PRs that
+bump both the pinned SHA and the `# vX.Y.Z` comment. Review and merge those PRs.
