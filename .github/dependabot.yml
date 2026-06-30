@@ -1,0 +1,22 @@
+version: 2
+updates:
+  # Go module dependencies.
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      go-dependencies:
+        patterns: [ "*" ]
+
+  # GitHub Actions. Keeps the SHA-pinned actions in the workflows up to date
+  # (Dependabot bumps the pinned SHA and the version comment together).
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      github-actions:
+        patterns: [ "*" ]
