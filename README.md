@@ -34,24 +34,62 @@ Add that line to your shell's rc file (`~/.bashrc`, `~/.zshrc`, etc.) to make it
 
 ## Configure
 
-### API key
+### Authentication
 
-**Option 1 — environment variable (recommended):**
+`lazygit-ai` resolves credentials in this order (first match wins):
+
+1. `ANTHROPIC_API_KEY` env var
+2. `api_key` in the config file
+3. `ANTHROPIC_AUTH_TOKEN` env var
+4. `auth_token` in the config file
+5. an `ant auth login` profile (resolved by the SDK at call time)
+
+#### Option A — API key (Console, pay-per-token)
 
 ```sh
-export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_API_KEY=sk-ant-api03-...
 ```
 
-**Option 2 — config file:**
-
-Create `~/.config/lazygit-ai/config.yml`:
+or in `~/.config/lazygit-ai/config.yml`:
 
 ```yaml
-api_key: sk-ant-...
+api_key: sk-ant-api03-...
 model: claude-opus-4-8
 ```
 
-The environment variable takes precedence over the config file when both are set.
+#### Option B — use your Claude Pro/Max subscription
+
+Mint a subscription token with the Claude Code CLI and use it as the
+**auth token** (not `api_key`):
+
+```sh
+claude setup-token          # requires Claude Code, logged in to your Pro/Max plan
+# prints a token like: sk-ant-oat01-...
+```
+
+Then either:
+
+```sh
+export ANTHROPIC_AUTH_TOKEN=sk-ant-oat01-...
+```
+
+or in `~/.config/lazygit-ai/config.yml`:
+
+```yaml
+auth_token: sk-ant-oat01-...
+model: claude-opus-4-8
+```
+
+`lazygit-ai` sends this as an OAuth bearer token with the required
+`anthropic-beta: oauth-2025-04-20` header. This draws on your subscription
+rather than Console API billing.
+
+> Note: subscription tokens are intended for Claude Code; using one in
+> third-party tools is your call and subject to Anthropic's terms.
+
+Environment variables take precedence over the config file. Set **either**
+`api_key`/`ANTHROPIC_API_KEY` **or** `auth_token`/`ANTHROPIC_AUTH_TOKEN`, not
+both — sending both makes the API reject the request.
 
 ### Model selection
 

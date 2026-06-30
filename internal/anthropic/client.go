@@ -21,12 +21,23 @@ type Client struct {
 	model string
 }
 
-// New constructs a Client. The API key is taken from cfg.APIKey when set;
-// otherwise the SDK resolves ANTHROPIC_API_KEY from the environment.
+// New constructs a Client from the resolved credentials:
+//   - APIKey set      -> x-api-key auth.
+//   - AuthToken set   -> OAuth bearer auth (Authorization: Bearer) plus the
+//     oauth beta header. This is what a subscription token from
+//     `claude setup-token` (sk-ant-oat...) needs.
+//   - neither set     -> the SDK resolves credentials itself (env vars or an
+//     `ant auth login` profile).
 func New(cfg *config.Config) *Client {
 	var opts []option.RequestOption
-	if cfg.APIKey != "" {
+	switch {
+	case cfg.APIKey != "":
 		opts = append(opts, option.WithAPIKey(cfg.APIKey))
+	case cfg.AuthToken != "":
+		opts = append(opts,
+			option.WithAuthToken(cfg.AuthToken),
+			option.WithHeaderAdd("anthropic-beta", "oauth-2025-04-20"),
+		)
 	}
 	return &Client{
 		api:   anthropic.NewClient(opts...),
