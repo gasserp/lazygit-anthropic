@@ -30,12 +30,19 @@ Global flags:
   --model <id>   Override the Anthropic model.
   -h, --help     Show this help.
 
+Authentication (first match wins):
+  ANTHROPIC_API_KEY     API key, or api_key in the config file.
+  ANTHROPIC_AUTH_TOKEN  OAuth bearer token, or auth_token in the config file.
+                        Use a subscription token from 'claude setup-token'.
+  ant auth login        An Anthropic CLI profile, resolved by the SDK.
+
 Environment:
-  ANTHROPIC_API_KEY   API key (preferred). Falls back to api_key in the config file.
-  LAZYGIT_AI_MODEL    Default model override.
+  ANTHROPIC_API_KEY     API key.
+  ANTHROPIC_AUTH_TOKEN  OAuth bearer token (sk-ant-oat...).
+  LAZYGIT_AI_MODEL      Default model override.
 
 Config file: $XDG_CONFIG_HOME/lazygit-ai/config.yml (or ~/.config/lazygit-ai/config.yml)
-  YAML keys: api_key, model
+  YAML keys: api_key, auth_token, model
 `
 
 func main() {
@@ -84,7 +91,7 @@ func runCommit(args []string) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	if err := cfg.RequireAPIKey(); err != nil {
+	if err := cfg.RequireCredentials(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
@@ -116,7 +123,7 @@ func runPR(args []string) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	if err := cfg.RequireAPIKey(); err != nil {
+	if err := cfg.RequireCredentials(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}

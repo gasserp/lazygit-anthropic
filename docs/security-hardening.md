@@ -40,8 +40,9 @@ It enables:
   land — the direct mitigation for leaked-token takeovers).
 - **`GITHUB_TOKEN` default = read-only** at the repo level, and Actions cannot
   approve pull requests.
-- **Actions allowlist**: GitHub-owned actions plus an explicit
-  `aquasecurity/trivy-action@*` entry — nothing else can run.
+- **Actions allowlist**: GitHub-owned actions plus explicit
+  `aquasecurity/trivy-action@*` and `aquasecurity/setup-trivy@*` entries
+  (trivy-action calls setup-trivy internally) — nothing else can run.
 - The **branch ruleset** below.
 
 > Secret scanning and code scanning are free on public repos; on private repos
@@ -58,7 +59,7 @@ It enables:
 | `non_fast_forward` | **Force-pushes are blocked** — history cannot be rewritten. |
 | `required_linear_history` | No merge commits; squash/rebase only. |
 | `required_signatures` | Commits on `main` must be signed (merges via GitHub are signed automatically). |
-| `pull_request` | Direct pushes are blocked; changes land via PR with 1 approval, stale-review dismissal, last-push approval, and resolved threads. |
+| `pull_request` | Direct pushes are blocked; changes land via PR with stale-review dismissal and resolved threads. Approvals default to 0 and last-push approval is off so a solo maintainer isn't locked out (raise `required_approving_review_count` and re-enable last-push approval once you have reviewers). |
 | `required_status_checks` | The `build` check must pass and be up to date before merge. |
 
 No bypass actors are configured, so the rules apply to admins too.
