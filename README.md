@@ -154,6 +154,47 @@ For lighter workloads or lower cost, consider:
 - `claude-sonnet-4-6` — faster and cheaper, still high quality
 - `claude-haiku-4-5` — fastest and cheapest option
 
+### Custom instructions
+
+`instructions` in the config file is free-form text appended to the system
+prompt for **both** `commit` and `pr` generation. Use it to teach the model
+your project's conventions — naming, scope, tone, formatting rules — without
+touching any Go code.
+
+```yaml
+# ~/.config/lazygit-ai/config.yml
+provider: cli
+model: claude-opus-4-8
+instructions: |
+  Commit message conventions for this project:
+  - Use these scopes only: api, db, ui, cli, ci, deps.
+  - Subject line: imperative mood ("add", not "adds"/"added"), no trailing period.
+  - Never mention file names or line counts in the subject; save specifics for the body.
+  - If the diff touches both implementation and tests, say so explicitly in the body
+    (e.g. "Adds a regression test alongside the fix").
+  - Breaking changes must start the body with "BREAKING CHANGE:" on its own line.
+  - Keep the body to what changed and why — skip restating the diff line by line.
+```
+
+General best practices worth encoding here:
+
+- **Be specific, not vibes-based.** "Write good commit messages" does nothing;
+  "use imperative mood, no period, 72-char subject" is something the model can
+  actually follow.
+- **Give it a fixed vocabulary.** Enumerate your `type`/`scope` values (e.g.
+  `feat`, `fix`, `refactor`, `chore` and your handful of scopes) so messages
+  stay consistent across contributors instead of drifting.
+- **Call out what to leave out.** Models tend to over-explain; explicitly
+  banning things like restating the diff or mentioning filenames in the
+  subject keeps messages tight.
+- **State precedence for edge cases**, e.g. how to title a commit that spans
+  multiple scopes, or when to fall back to no scope at all.
+
+`instructions` is appended to the prompt as-is, after the built-in Conventional
+Commits / PR-description instructions, and is explicitly marked as taking
+precedence if the two ever conflict — so you can override defaults (e.g. a
+different style than Conventional Commits) as well as extend them.
+
 ## lazygit integration
 
 Merge the `customCommands` block from `lazygit/config.yml` in this repo into your lazygit config file.
