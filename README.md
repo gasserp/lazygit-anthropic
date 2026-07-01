@@ -57,6 +57,8 @@ api_key: sk-ant-api03-...
 model: claude-opus-4-8
 ```
 
+Set either auth_token or api_key, never both. Don't also have ANTHROPIC_API_KEY set in your environment — env vars win over the config file and would override your subscription token.
+
 #### Option B — use your Claude Pro/Max subscription
 
 Mint a subscription token with the Claude Code CLI and use it as the
@@ -95,11 +97,11 @@ both — sending both makes the API reject the request.
 
 The default model is `claude-opus-4-8`. You can override it at three levels (highest priority first):
 
-| Method | Example |
-|---|---|
-| `--model` flag | `lazygit-ai commit --model claude-haiku-4-5` |
-| `LAZYGIT_AI_MODEL` env var | `export LAZYGIT_AI_MODEL=claude-sonnet-4-6` |
-| `model:` in config file | `model: claude-sonnet-4-6` |
+| Method                     | Example                                      |
+| -------------------------- | -------------------------------------------- |
+| `--model` flag             | `lazygit-ai commit --model claude-haiku-4-5` |
+| `LAZYGIT_AI_MODEL` env var | `export LAZYGIT_AI_MODEL=claude-sonnet-4-6`  |
+| `model:` in config file    | `model: claude-sonnet-4-6`                   |
 
 For lighter workloads or lower cost, consider:
 
@@ -125,7 +127,7 @@ customCommands:
   - key: '<c-a>'
     context: 'files'
     description: 'AI: generate commit message'
-    command: 'lazygit-ai commit | git commit -F - --edit'
+    command: 'lazygit-ai commit --commit --edit'
     subprocess: true
   - key: '<c-p>'
     context: 'localBranches'
@@ -136,10 +138,10 @@ customCommands:
 
 **Keybindings:**
 
-| Key | Panel | Action |
-|---|---|---|
-| `Ctrl+A` | Files | Generate a commit message for staged changes, open it in `$EDITOR` for review, then commit |
-| `Ctrl+P` | Local Branches | Generate a PR title + body and open a PR via `gh pr create` |
+| Key      | Panel          | Action                                                                                     |
+| -------- | -------------- | ------------------------------------------------------------------------------------------ |
+| `Ctrl+A` | Files          | Generate a commit message for staged changes, open it in `$EDITOR` for review, then commit |
+| `Ctrl+P` | Local Branches | Generate a PR title + body and open a PR via `gh pr create`                                |
 
 These keybindings can be changed by editing the `key:` fields in your lazygit config.
 
@@ -148,6 +150,10 @@ These keybindings can be changed by editing the `key:` fields in your lazygit co
 ```sh
 # Generate a commit message for staged changes (prints to stdout)
 lazygit-ai commit
+
+# Generate the message and create the commit directly (no shell pipe),
+# opening it in $EDITOR for review first
+lazygit-ai commit --commit --edit
 
 # Generate a PR description (prints title and body to stdout)
 lazygit-ai pr

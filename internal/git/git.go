@@ -8,6 +8,7 @@ package git
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -88,4 +89,40 @@ func HasCommits(base string) (bool, error) {
 // (`git diff base...HEAD`).
 func RangeDiff(base string) (string, error) {
 	return run("diff", base+"...HEAD")
+}
+
+// Commit creates a commit using msg as the message. The message is passed to
+// git via a temporary file (`git commit -F <file>`) to preserve multi-line
+// content without relying on a shell pipe, which cmd.exe mangles on Windows.
+// When edit is true, the message is opened in the user's editor for review
+// before the commit is finalized (`--edit`). The child git process inherits the
+// current stdio so an interactive editor works under lazygit's subprocess mode.
+func Commit(msg string, edit bool) error {
+	f, err := os.CreateTemp("", "lazygit-ai-commit-*.txt")
+	if err != nil {
+		return fmt.Errorf("create temp commit message file: %w", err)
+	}
+	defer os.Remove(f.Name())
+
+	if _, err := f.WriteString(msg); err != nil {
+		f.Close()
+		return fmt.Errorf("write temp commit message file: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("close temp commit message file: %w", err)
+	}
+
+	args := []string{"commit", "-F", f.Name()}
+	if edit {
+		args = append(args, "--edit")
+	}
+
+	cmd := exec.Command("git", args...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("git %s: %w", strings.Join(args, " "), err)
+	}
+	return nil
 }
