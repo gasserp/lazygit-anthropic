@@ -21,7 +21,7 @@ lazygit has no plugin system. Custom commands — defined in lazygit's config fi
 make install
 
 # Or directly with Go
-go install github.com/gasserp/lazygit-anthropic@latest
+go install github.com/gasserp/lazygit-anthropic/cmd/lazygit-ai@latest
 ```
 
 Then ensure Go's bin directory is on your PATH:
