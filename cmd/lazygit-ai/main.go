@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gasserp/lazygit-anthropic/internal/anthropic"
 	"github.com/gasserp/lazygit-anthropic/internal/commit"
 	"github.com/gasserp/lazygit-anthropic/internal/config"
+	"github.com/gasserp/lazygit-anthropic/internal/generator"
 	"github.com/gasserp/lazygit-anthropic/internal/git"
 	"github.com/gasserp/lazygit-anthropic/internal/pr"
 )
@@ -19,8 +19,8 @@ import (
 const usage = `lazygit-ai - generate commit messages and PR descriptions via the Anthropic API
 
 Usage:
-  lazygit-ai commit [--commit] [--edit] [--model <id>]
-  lazygit-ai pr [--base <branch>] [--create] [--model <id>]
+  lazygit-ai commit [--commit] [--edit] [--model <id>] [--provider <name>]
+  lazygit-ai pr [--base <branch>] [--create] [--model <id>] [--provider <name>]
 
 Commands:
   commit    Generate a commit message from the staged diff and print it to stdout.
@@ -29,10 +29,18 @@ Commands:
   pr        Generate a PR title and description for the current branch.
 
 Global flags:
-  --model <id>   Override the Anthropic model.
-  -h, --help     Show this help.
+  --model <id>       Override the Anthropic model.
+  --provider <name>  Backend: "api" (default) or "cli" (shell out to claude).
+  -h, --help         Show this help.
 
-Authentication (first match wins):
+Providers:
+  api   Talk to the Anthropic Messages API directly (default). Needs a
+        credential (see Authentication below).
+  cli   Shell out to the 'claude' CLI in print mode, reusing its existing
+        login (e.g. a Pro/Max subscription). No credential is configured
+        here; 'claude' must be installed and logged in.
+
+Authentication (api provider; first match wins):
   ANTHROPIC_API_KEY     API key, or api_key in the config file.
   ANTHROPIC_AUTH_TOKEN  OAuth bearer token, or auth_token in the config file.
                         Use a subscription token from 'claude setup-token'.
@@ -42,9 +50,10 @@ Environment:
   ANTHROPIC_API_KEY     API key.
   ANTHROPIC_AUTH_TOKEN  OAuth bearer token (sk-ant-oat...).
   LAZYGIT_AI_MODEL      Default model override.
+  LAZYGIT_AI_PROVIDER   Default provider override ("api" or "cli").
 
 Config file: $XDG_CONFIG_HOME/lazygit-ai/config.yml (or ~/.config/lazygit-ai/config.yml)
-  YAML keys: api_key, auth_token, model
+  YAML keys: api_key, auth_token, model, provider
 `
 
 func main() {
@@ -83,6 +92,7 @@ func runCommit(args []string) int {
 	fs := flag.NewFlagSet("commit", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	model := fs.String("model", "", "override the Anthropic model")
+	provider := fs.String("provider", "", `backend: "api" (default) or "cli"`)
 	doCommit := fs.Bool("commit", false, "create the commit directly instead of printing the message to stdout")
 	edit := fs.Bool("edit", false, "with --commit, open the generated message in $EDITOR before committing")
 	fs.Usage = func() { fmt.Fprint(os.Stderr, usage) }
@@ -90,7 +100,7 @@ func runCommit(args []string) int {
 		return 2
 	}
 
-	cfg, err := config.Resolve(*model)
+	cfg, err := config.Resolve(*model, *provider)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
@@ -100,7 +110,11 @@ func runCommit(args []string) int {
 		return 1
 	}
 
-	client := anthropic.New(cfg)
+	client, err := generator.New(cfg)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
 	msg, err := commit.Generate(context.Background(), client)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -125,12 +139,13 @@ func runPR(args []string) int {
 	base := fs.String("base", "", "base branch (defaults to origin/HEAD, then main/master)")
 	create := fs.Bool("create", false, "create the PR via gh pr create")
 	model := fs.String("model", "", "override the Anthropic model")
+	provider := fs.String("provider", "", `backend: "api" (default) or "cli"`)
 	fs.Usage = func() { fmt.Fprint(os.Stderr, usage) }
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
 
-	cfg, err := config.Resolve(*model)
+	cfg, err := config.Resolve(*model, *provider)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
@@ -146,7 +161,11 @@ func runPR(args []string) int {
 		return 1
 	}
 
-	client := anthropic.New(cfg)
+	client, err := generator.New(cfg)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
 	result, err := pr.Generate(context.Background(), client, baseBranch)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

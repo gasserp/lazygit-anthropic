@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gasserp/lazygit-anthropic/internal/anthropic"
+	"github.com/gasserp/lazygit-anthropic/internal/generator"
 	"github.com/gasserp/lazygit-anthropic/internal/git"
 )
 
@@ -21,7 +21,7 @@ Output ONLY the commit message itself. Do not include markdown code fences, back
 
 // Generate reads the staged diff and returns an AI-generated commit message.
 // It returns an error if there are no staged changes.
-func Generate(ctx context.Context, client *anthropic.Client) (string, error) {
+func Generate(ctx context.Context, client generator.Generator) (string, error) {
 	diff, err := git.StagedDiff()
 	if err != nil {
 		return "", err

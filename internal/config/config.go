@@ -13,14 +13,29 @@ import (
 // DefaultModel is used when no model is configured anywhere.
 const DefaultModel = "claude-opus-4-8"
 
+// Provider selects how requests reach Anthropic.
+const (
+	// ProviderAPI talks to the Messages API directly using a resolved API key,
+	// OAuth token, or `ant auth login` profile. This is the default.
+	ProviderAPI = "api"
+	// ProviderCLI shells out to the `claude` CLI, reusing whatever login it
+	// already has (e.g. a Pro/Max subscription). No credential is configured
+	// here; the CLI resolves its own auth.
+	ProviderCLI = "cli"
+)
+
+// DefaultProvider is used when no provider is configured anywhere.
+const DefaultProvider = ProviderAPI
+
 // fileConfig mirrors the optional YAML config file. All keys are optional.
 type fileConfig struct {
 	APIKey    string `yaml:"api_key"`
 	AuthToken string `yaml:"auth_token"`
 	Model     string `yaml:"model"`
+	Provider  string `yaml:"provider"`
 }
 
-// Config holds the resolved credentials and model.
+// Config holds the resolved credentials, model, and provider.
 type Config struct {
 	// APIKey is the resolved Anthropic API key (x-api-key auth), or empty.
 	APIKey string
@@ -29,6 +44,8 @@ type Config struct {
 	AuthToken string
 	// Model is the resolved model ID (never empty).
 	Model string
+	// Provider is the resolved backend ("api" or "cli"; never empty).
+	Provider string
 	// configPath is the path we looked for the config file at, used for
 	// error messages.
 	configPath string
@@ -78,12 +95,14 @@ func loadFile(path string) (fileConfig, error) {
 //	(only consulted when no API key is set).
 //
 // Model:      modelFlag > LAZYGIT_AI_MODEL env > config file `model` > DefaultModel.
+// Provider:   providerFlag > LAZYGIT_AI_PROVIDER env > config file `provider` > DefaultProvider.
 //
 // When neither an API key nor an auth token is configured, the Anthropic SDK
 // still resolves credentials from an `ant auth login` profile at call time.
 //
-// The modelFlag argument is the value of the --model CLI flag ("" if unset).
-func Resolve(modelFlag string) (*Config, error) {
+// The modelFlag and providerFlag arguments are the values of the --model and
+// --provider CLI flags ("" if unset).
+func Resolve(modelFlag, providerFlag string) (*Config, error) {
 	path := configFilePath()
 	fc, err := loadFile(path)
 	if err != nil {
@@ -116,6 +135,23 @@ func Resolve(modelFlag string) (*Config, error) {
 		cfg.Model = DefaultModel
 	}
 
+	// Provider precedence.
+	switch {
+	case providerFlag != "":
+		cfg.Provider = providerFlag
+	case os.Getenv("LAZYGIT_AI_PROVIDER") != "":
+		cfg.Provider = os.Getenv("LAZYGIT_AI_PROVIDER")
+	case fc.Provider != "":
+		cfg.Provider = fc.Provider
+	default:
+		cfg.Provider = DefaultProvider
+	}
+	switch cfg.Provider {
+	case ProviderAPI, ProviderCLI:
+	default:
+		return nil, fmt.Errorf("invalid provider %q: must be %q or %q", cfg.Provider, ProviderAPI, ProviderCLI)
+	}
+
 	return cfg, nil
 }
 
@@ -144,9 +180,13 @@ func (c *Config) HasCredentials() bool {
 }
 
 // RequireCredentials returns a clear error if no credential is available.
+//
+// Under the CLI provider there is nothing to check here: the `claude` binary
+// resolves its own auth, and its presence on PATH is validated when the
+// generator is constructed.
 func (c *Config) RequireCredentials() error {
-	if c.HasCredentials() {
+	if c.Provider == ProviderCLI || c.HasCredentials() {
 		return nil
 	}
-	return fmt.Errorf("no Anthropic credentials: set ANTHROPIC_API_KEY, add api_key or auth_token to %s, or run `ant auth login`", c.configPath)
+	return fmt.Errorf("no Anthropic credentials: set ANTHROPIC_API_KEY, add api_key or auth_token to %s, run `ant auth login`, or set provider: cli to use the claude CLI login", c.configPath)
 }

@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/gasserp/lazygit-anthropic/internal/anthropic"
+	"github.com/gasserp/lazygit-anthropic/internal/generator"
 	"github.com/gasserp/lazygit-anthropic/internal/git"
 )
 
@@ -50,7 +50,7 @@ func ResolveBase(baseFlag string) (string, error) {
 }
 
 // Generate builds a PR title and body for the given base branch.
-func Generate(ctx context.Context, client *anthropic.Client, base string) (*Result, error) {
+func Generate(ctx context.Context, client generator.Generator, base string) (*Result, error) {
 	hasCommits, err := git.HasCommits(base)
 	if err != nil {
 		return nil, err

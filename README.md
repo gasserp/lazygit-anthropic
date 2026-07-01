@@ -1,6 +1,6 @@
 # lazygit-ai
 
-A Go CLI that generates Conventional-Commits-style commit messages and GitHub PR descriptions via the Anthropic API, wired into [lazygit](https://github.com/jesseduffield/lazygit) through its Custom Commands feature.
+A Go CLI that generates Conventional-Commits-style commit messages and GitHub PR descriptions with Claude, wired into [lazygit](https://github.com/jesseduffield/lazygit) through its Custom Commands feature. It can talk to the Anthropic API directly, or shell out to the `claude` CLI and reuse its login.
 
 ## Why custom commands?
 
@@ -12,7 +12,7 @@ lazygit has no plugin system. Custom commands — defined in lazygit's config fi
 - **git**
 - **lazygit**
 - **gh** (GitHub CLI) — optional, only needed for `lazygit-ai pr --create`
-- An **Anthropic API key** — get one at <https://console.anthropic.com/>
+- **Credentials** — either an **Anthropic API key** (<https://console.anthropic.com/>) or a subscription token for the `api` provider, or the **`claude` CLI** installed and logged in for the `cli` provider (see [Provider](#provider))
 
 ## Install
 
@@ -34,15 +34,28 @@ Add that line to your shell's rc file (`~/.bashrc`, `~/.zshrc`, etc.) to make it
 
 ## Configure
 
+### Provider
+
+`lazygit-ai` has two backends, selected by the `provider` setting:
+
+| Provider      | How it authenticates                                                                                   |
+| ------------- | ------------------------------------------------------------------------------------------------------ |
+| `api` (default) | Calls the Anthropic Messages API directly. Needs a credential (see [Authentication](#authentication)). |
+| `cli`         | Shells out to the `claude` CLI in print mode and reuses **its** login (e.g. a Pro/Max subscription). No credential is configured here — `claude` must be installed and already logged in. |
+
+Set it via `--provider`, the `LAZYGIT_AI_PROVIDER` env var, or `provider:` in the config file (flag > env > file > default `api`). See [Option C](#option-c--use-the-claude-cli-provider-cli) for the CLI route.
+
 ### Authentication
 
-`lazygit-ai` resolves credentials in this order (first match wins):
+With the default `api` provider, `lazygit-ai` resolves credentials in this order (first match wins):
 
 1. `ANTHROPIC_API_KEY` env var
 2. `api_key` in the config file
 3. `ANTHROPIC_AUTH_TOKEN` env var
 4. `auth_token` in the config file
 5. an `ant auth login` profile (resolved by the SDK at call time)
+
+The `cli` provider skips all of this — auth is whatever `claude` already has.
 
 #### Option A — API key (Console, pay-per-token)
 
@@ -92,6 +105,39 @@ rather than Console API billing.
 Environment variables take precedence over the config file. Set **either**
 `api_key`/`ANTHROPIC_API_KEY` **or** `auth_token`/`ANTHROPIC_AUTH_TOKEN`, not
 both — sending both makes the API reject the request.
+
+#### Option C — use the `claude` CLI (`provider: cli`)
+
+If you already have [Claude Code](https://claude.com/claude-code) installed and
+logged in, you can skip credential setup entirely and let `lazygit-ai` shell out
+to it:
+
+```yaml
+# ~/.config/lazygit-ai/config.yml
+provider: cli
+model: claude-opus-4-8
+```
+
+or per-invocation:
+
+```sh
+lazygit-ai commit --provider cli
+export LAZYGIT_AI_PROVIDER=cli   # or set it once in your shell
+```
+
+`lazygit-ai` runs `claude -p` non-interactively, replacing Claude Code's default
+system prompt with its own and disabling the CLI's tools, so the result is the
+same single-shot message you'd get from the API. Because it reuses the `claude`
+login, this is the least setup — nothing to configure but the provider.
+
+Trade-offs versus the API providers:
+
+- **Slower.** Each call spawns the `claude` process, adding a couple of seconds
+  of start-up latency on top of generation.
+- **No `max_tokens`/determinism control.** The CLI doesn't expose those knobs;
+  the prompts still bound output length in practice.
+- **Requires `claude` on PATH**, logged in. Billing follows your `claude`
+  login (e.g. subscription) rather than Console API usage.
 
 ### Model selection
 
