@@ -53,7 +53,12 @@ Environment:
   LAZYGIT_AI_PROVIDER   Default provider override ("api" or "cli").
 
 Config file: $XDG_CONFIG_HOME/lazygit-ai/config.yml (or ~/.config/lazygit-ai/config.yml)
-  YAML keys: api_key, auth_token, model, provider
+  YAML keys: api_key, auth_token, model, provider, instructions
+
+  instructions: free-form text appended to every system prompt (commit and
+  pr alike), for teaching the model project conventions such as naming
+  rules, commit message style, or scopes to prefer. See README.md for an
+  example.
 `
 
 func main() {
@@ -115,7 +120,7 @@ func runCommit(args []string) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	msg, err := commit.Generate(context.Background(), client)
+	msg, err := commit.Generate(context.Background(), client, cfg)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
@@ -166,7 +171,7 @@ func runPR(args []string) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	result, err := pr.Generate(context.Background(), client, baseBranch)
+	result, err := pr.Generate(context.Background(), client, baseBranch, cfg)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1

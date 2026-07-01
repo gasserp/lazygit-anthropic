@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -29,10 +30,11 @@ const DefaultProvider = ProviderAPI
 
 // fileConfig mirrors the optional YAML config file. All keys are optional.
 type fileConfig struct {
-	APIKey    string `yaml:"api_key"`
-	AuthToken string `yaml:"auth_token"`
-	Model     string `yaml:"model"`
-	Provider  string `yaml:"provider"`
+	APIKey       string `yaml:"api_key"`
+	AuthToken    string `yaml:"auth_token"`
+	Model        string `yaml:"model"`
+	Provider     string `yaml:"provider"`
+	Instructions string `yaml:"instructions"`
 }
 
 // Config holds the resolved credentials, model, and provider.
@@ -46,6 +48,11 @@ type Config struct {
 	Model string
 	// Provider is the resolved backend ("api" or "cli"; never empty).
 	Provider string
+	// Instructions holds free-form, user-supplied text appended to every
+	// system prompt (commit and PR generation alike). It's the intended place
+	// to teach the model project conventions: naming rules, commit style,
+	// scopes to prefer, things to never mention, etc. Empty by default.
+	Instructions string
 	// configPath is the path we looked for the config file at, used for
 	// error messages.
 	configPath string
@@ -94,8 +101,9 @@ func loadFile(path string) (fileConfig, error) {
 //
 //	(only consulted when no API key is set).
 //
-// Model:      modelFlag > LAZYGIT_AI_MODEL env > config file `model` > DefaultModel.
-// Provider:   providerFlag > LAZYGIT_AI_PROVIDER env > config file `provider` > DefaultProvider.
+// Model:        modelFlag > LAZYGIT_AI_MODEL env > config file `model` > DefaultModel.
+// Provider:     providerFlag > LAZYGIT_AI_PROVIDER env > config file `provider` > DefaultProvider.
+// Instructions: config file `instructions` only (empty by default).
 //
 // When neither an API key nor an auth token is configured, the Anthropic SDK
 // still resolves credentials from an `ant auth login` profile at call time.
@@ -152,6 +160,8 @@ func Resolve(modelFlag, providerFlag string) (*Config, error) {
 		return nil, fmt.Errorf("invalid provider %q: must be %q or %q", cfg.Provider, ProviderAPI, ProviderCLI)
 	}
 
+	cfg.Instructions = fc.Instructions
+
 	return cfg, nil
 }
 
@@ -171,6 +181,16 @@ func antProfileExists() bool {
 		return true
 	}
 	return false
+}
+
+// BuildSystemPrompt appends the configured Instructions, if any, to a base
+// system prompt. This is how project-specific conventions (naming, commit
+// style, scopes, things to avoid) reach the model without editing Go code.
+func (c *Config) BuildSystemPrompt(base string) string {
+	if strings.TrimSpace(c.Instructions) == "" {
+		return base
+	}
+	return base + "\n\nAdditional instructions from the user, which take precedence over the above where they conflict:\n" + strings.TrimSpace(c.Instructions)
 }
 
 // HasCredentials reports whether some Anthropic credential is resolvable: an

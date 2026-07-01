@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -109,6 +110,35 @@ func TestRequireCredentialsAPINeedsCredential(t *testing.T) {
 	}
 	if err := cfg.RequireCredentials(); err == nil {
 		t.Fatal("api provider with no credentials should error")
+	}
+}
+
+func TestResolveInstructionsFromFile(t *testing.T) {
+	dir := isolate(t)
+	writeConfig(t, dir, "instructions: |\n  Use nouns, not verbs, in scopes.\n  Never mention file names in the subject line.\n")
+	cfg, err := Resolve("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "Use nouns, not verbs, in scopes.\nNever mention file names in the subject line.\n"
+	if cfg.Instructions != want {
+		t.Fatalf("Instructions = %q, want %q", cfg.Instructions, want)
+	}
+}
+
+func TestBuildSystemPromptNoInstructions(t *testing.T) {
+	cfg := &Config{}
+	got := cfg.BuildSystemPrompt("base prompt")
+	if got != "base prompt" {
+		t.Fatalf("BuildSystemPrompt = %q, want unchanged base prompt", got)
+	}
+}
+
+func TestBuildSystemPromptAppendsInstructions(t *testing.T) {
+	cfg := &Config{Instructions: "Use nouns in scopes."}
+	got := cfg.BuildSystemPrompt("base prompt")
+	if !strings.Contains(got, "base prompt") || !strings.Contains(got, "Use nouns in scopes.") {
+		t.Fatalf("BuildSystemPrompt = %q, want it to contain both base prompt and instructions", got)
 	}
 }
 
