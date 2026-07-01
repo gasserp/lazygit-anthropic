@@ -178,10 +178,6 @@ lazygit-ai pr --help
 
 `lazygit-ai pr` auto-detects the base branch from the origin remote's default branch, falling back to `main` or `master`. Without `--create` it prints `title\n\nbody`; with `--create` it runs `gh pr create`.
 
-## Security
-
-The repository is hardened against supply-chain and takeover risks: GitHub Actions are pinned to immutable commit SHAs, workflows run with a read-only `GITHUB_TOKEN`, CodeQL, Trivy, and govulncheck run on a schedule, and Renovate keeps dependencies (and the pinned Action SHAs) up to date. Branch protection is shipped as a ruleset and applied with `scripts/apply-security.sh`. See [`docs/security-hardening.md`](docs/security-hardening.md) for the full rationale and checklist, and [`SECURITY.md`](SECURITY.md) for how to report a vulnerability.
-
 ## Maintainability
 
 The lazygit integration is config-only. lazygit upgrades will not break anything as long as lazygit continues to support the `customCommands` schema, which is a stable, documented feature. No forking, no patching, no monkey-patching — just two lines in a YAML file.
