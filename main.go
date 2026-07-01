@@ -19,11 +19,13 @@ import (
 const usage = `lazygit-ai - generate commit messages and PR descriptions via the Anthropic API
 
 Usage:
-  lazygit-ai commit [--model <id>]
+  lazygit-ai commit [--commit] [--edit] [--model <id>]
   lazygit-ai pr [--base <branch>] [--create] [--model <id>]
 
 Commands:
   commit    Generate a commit message from the staged diff and print it to stdout.
+            With --commit, create the commit directly (no shell pipe needed);
+            add --edit to review the message in $EDITOR first.
   pr        Generate a PR title and description for the current branch.
 
 Global flags:
@@ -81,6 +83,8 @@ func runCommit(args []string) int {
 	fs := flag.NewFlagSet("commit", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	model := fs.String("model", "", "override the Anthropic model")
+	doCommit := fs.Bool("commit", false, "create the commit directly instead of printing the message to stdout")
+	edit := fs.Bool("edit", false, "with --commit, open the generated message in $EDITOR before committing")
 	fs.Usage = func() { fmt.Fprint(os.Stderr, usage) }
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -101,6 +105,14 @@ func runCommit(args []string) int {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
+	}
+
+	if *doCommit {
+		if err := git.Commit(msg, *edit); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		return 0
 	}
 
 	fmt.Println(msg)

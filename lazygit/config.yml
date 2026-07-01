@@ -25,7 +25,7 @@ customCommands:
   - key: '<c-a>'
     context: 'files'
     description: 'AI: generate commit message'
-    command: 'lazygit-ai commit | git commit -F - --edit'
+    command: 'lazygit-ai commit --commit --edit'
     subprocess: true
   - key: '<c-p>'
     context: 'localBranches'
