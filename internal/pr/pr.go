@@ -9,7 +9,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/gasserp/lazygit-anthropic/internal/anthropic"
+	"github.com/gasserp/lazygit-anthropic/internal/config"
+	"github.com/gasserp/lazygit-anthropic/internal/generator"
 	"github.com/gasserp/lazygit-anthropic/internal/git"
 )
 
@@ -49,8 +50,10 @@ func ResolveBase(baseFlag string) (string, error) {
 	return "", fmt.Errorf("could not determine base branch: pass --base, or ensure origin/HEAD, main, or master exists")
 }
 
-// Generate builds a PR title and body for the given base branch.
-func Generate(ctx context.Context, client *anthropic.Client, base string) (*Result, error) {
+// Generate builds a PR title and body for the given base branch. cfg's
+// Instructions, if set, are appended to the system prompt (see
+// config.Config.BuildSystemPrompt).
+func Generate(ctx context.Context, client generator.Generator, base string, cfg *config.Config) (*Result, error) {
 	hasCommits, err := git.HasCommits(base)
 	if err != nil {
 		return nil, err
@@ -71,7 +74,7 @@ func Generate(ctx context.Context, client *anthropic.Client, base string) (*Resu
 
 	user := fmt.Sprintf("Commits:\n%s\n\nDiff (%s...HEAD):\n%s", strings.TrimSpace(log), base, diff)
 
-	out, err := client.Generate(ctx, systemPrompt, user, 2048)
+	out, err := client.Generate(ctx, cfg.BuildSystemPrompt(systemPrompt), user, 2048)
 	if err != nil {
 		return nil, err
 	}

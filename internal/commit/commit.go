@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gasserp/lazygit-anthropic/internal/anthropic"
+	"github.com/gasserp/lazygit-anthropic/internal/config"
+	"github.com/gasserp/lazygit-anthropic/internal/generator"
 	"github.com/gasserp/lazygit-anthropic/internal/git"
 )
 
@@ -20,8 +21,9 @@ Given a staged diff and a list of changed files, produce a single commit message
 Output ONLY the commit message itself. Do not include markdown code fences, backticks, quotes, or any preamble such as "Here is the commit message".`
 
 // Generate reads the staged diff and returns an AI-generated commit message.
-// It returns an error if there are no staged changes.
-func Generate(ctx context.Context, client *anthropic.Client) (string, error) {
+// It returns an error if there are no staged changes. cfg's Instructions, if
+// set, are appended to the system prompt (see config.Config.BuildSystemPrompt).
+func Generate(ctx context.Context, client generator.Generator, cfg *config.Config) (string, error) {
 	diff, err := git.StagedDiff()
 	if err != nil {
 		return "", err
@@ -37,5 +39,5 @@ func Generate(ctx context.Context, client *anthropic.Client) (string, error) {
 
 	user := fmt.Sprintf("Changed files:\n%s\n\nStaged diff:\n%s", strings.TrimSpace(nameStatus), diff)
 
-	return client.Generate(ctx, systemPrompt, user, 1024)
+	return client.Generate(ctx, cfg.BuildSystemPrompt(systemPrompt), user, 1024)
 }

@@ -58,7 +58,8 @@ soft api --method PUT "repos/${REPO}/actions/permissions/selected-actions" --inp
   "github_owned_allowed": true,
   "verified_allowed": false,
   "patterns_allowed": [
-    "aquasecurity/trivy-action@*"
+    "aquasecurity/trivy-action@*",
+    "aquasecurity/setup-trivy@*"
   ]
 }
 JSON
