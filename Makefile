@@ -4,7 +4,7 @@ build:
 	go build -o bin/lazygit-ai .
 
 install:
-	go install .
+	go build -o "$$(go env GOPATH)/bin/lazygit-ai" .
 
 test:
 	go test ./...
