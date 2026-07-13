@@ -29,11 +29,11 @@ jobs:
         with:
           persist-credentials: false
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@codeql-bundle-v2.25.6
+        uses: github/codeql-action/init@c35d1b164463ee62a100735382aaaa525c5d3496 # codeql-bundle-v2.25.6
         with:
           languages: go
           build-mode: autobuild
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@codeql-bundle-v2.25.6
+        uses: github/codeql-action/analyze@c35d1b164463ee62a100735382aaaa525c5d3496 # codeql-bundle-v2.25.6
         with:
           category: "/language:go"
